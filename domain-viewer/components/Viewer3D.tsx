@@ -484,7 +484,7 @@ export default function Viewer3D({
   }, [isEmbed]);
 
   return (
-    <div className="w-full h-full bg-neutral-50 dark:bg-neutral-900">
+    <div className="w-full h-full bg-white dark:bg-[#050505]">
       <Canvas camera={{ position: [15, 15, 15], fov: 50 }} gl={{ alpha: true }}>
         <ambientLight intensity={0.5} />
         <directionalLight intensity={0.5} position={[10, 100, 10]} />

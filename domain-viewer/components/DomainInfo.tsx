@@ -47,20 +47,20 @@ export default function DomainInfo({
   }
 
   return (
-    <div className="fixed inset-4 top-24 w-full overflow-y-auto space-y-2 font-sans md:fixed md:left-4 md:bottom-4 md:w-[400px] md:top-auto">
+    <div className="fixed inset-4 top-40 w-full overflow-y-auto space-y-2 font-sans md:fixed md:left-4 md:bottom-4 md:w-[400px] md:top-auto">
       <Collapsible
         open={isDetailsOpen}
         onOpenChange={setIsDetailsOpen}
-        className="rounded-xl bg-[#282828] p-4 space-y-4"
+        className="rounded-xl bg-black/10 dark:bg-white/10 backdrop-blur-md p-4 space-y-4"
       >
-        <CollapsibleTrigger className="flex w-full items-center justify-between sticky top-0 bg-[#282828] py-2 z-10">
-          <h2 className="text-[#fafafa] text-base sm:text-xl font-medium">Domain details</h2>
-          <ChevronDown className={`h-4 w-4 sm:h-5 sm:w-5 text-[#fafafa] transition-transform ${isDetailsOpen ? "" : "rotate-180"}`} />
+        <CollapsibleTrigger className="flex w-full items-center justify-between sticky top-0 py-2 z-10">
+          <h2 className="text-black dark:text-white text-base sm:text-xl font-medium">Domain details</h2>
+          <ChevronDown className={`h-4 w-4 sm:h-5 sm:w-5 text-black dark:text-white transition-transform ${isDetailsOpen ? "" : "rotate-180"}`} />
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-3 overflow-y-auto max-h-[calc(100vh-20rem)]">
           {/* Domain ID */}
-          <div className="rounded-lg bg-[#191919] p-3">
-            <div className="flex items-center justify-between text-[#626262] text-sm mb-1">
+          <div className="rounded-lg bg-black/5 dark:bg-white/10 p-3">
+            <div className="flex items-center justify-between text-black/60 dark:text-white/60 text-sm mb-1">
               <div className="flex items-center gap-2">
                 <Database className="h-4 w-4" />
                 <span>Domain ID</span>
@@ -68,18 +68,18 @@ export default function DomainInfo({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 text-[#fafafa] hover:bg-[#fafafa]/10"
+                className="h-6 w-6 text-black dark:text-white hover:bg-black/10 dark:hover:bg-white/10"
                 onClick={() => copyToClipboard(domainInfo.id)}
               >
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
-            <div className="text-[#fafafa] text-sm font-mono">{domainInfo.id}</div>
+            <div className="text-black dark:text-white text-sm font-mono">{domainInfo.id}</div>
           </div>
 
           {/* Domain Name */}
-          <div className="rounded-lg bg-[#191919] p-3">
-            <div className="flex items-center justify-between text-[#626262] text-sm mb-1">
+          <div className="rounded-lg bg-black/5 dark:bg-white/10 p-3">
+            <div className="flex items-center justify-between text-black/60 dark:text-white/60 text-sm mb-1">
               <div className="flex items-center gap-2">
                 <Globe className="h-4 w-4" />
                 <span>Domain Name</span>
@@ -87,18 +87,18 @@ export default function DomainInfo({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 text-[#fafafa] hover:bg-[#fafafa]/10"
+                className="h-6 w-6 text-black dark:text-white hover:bg-black/10 dark:hover:bg-white/10"
                 onClick={() => copyToClipboard(domainInfo.name)}
               >
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
-            <div className="text-[#fafafa] text-sm">{domainInfo.name}</div>
+            <div className="text-black dark:text-white text-sm">{domainInfo.name}</div>
           </div>
 
           {/* Server URL */}
-          <div className="rounded-lg bg-[#191919] p-3">
-            <div className="flex items-center justify-between text-[#626262] text-sm mb-1">
+          <div className="rounded-lg bg-black/5 dark:bg-white/10 p-3">
+            <div className="flex items-center justify-between text-black/60 dark:text-white/60 text-sm mb-1">
               <div className="flex items-center gap-2">
                 <Link className="h-4 w-4" />
                 <span>Domain server address</span>
@@ -106,18 +106,18 @@ export default function DomainInfo({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 text-[#fafafa] hover:bg-[#fafafa]/10"
+                className="h-6 w-6 text-black dark:text-white hover:bg-black/10 dark:hover:bg-white/10"
                 onClick={() => copyToClipboard(domainInfo.url)}
               >
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
-            <div className="text-[#fafafa] text-sm break-all">{domainInfo.url}</div>
+            <div className="text-black dark:text-white text-sm break-all">{domainInfo.url}</div>
           </div>
 
           {/* Created At */}
-          <div className="rounded-lg bg-[#191919] p-3">
-            <div className="flex items-center justify-between text-[#626262] text-sm mb-1">
+          <div className="rounded-lg bg-black/5 dark:bg-white/10 p-3">
+            <div className="flex items-center justify-between text-black/60 dark:text-white/60 text-sm mb-1">
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
                 <span>Created at</span>
@@ -125,18 +125,18 @@ export default function DomainInfo({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 text-[#fafafa] hover:bg-[#fafafa]/10"
+                className="h-6 w-6 text-black dark:text-white hover:bg-black/10 dark:hover:bg-white/10"
                 onClick={() => copyToClipboard(domainInfo.createdAt)}
               >
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
-            <div className="text-[#fafafa] text-sm">{new Date(domainInfo.createdAt).toLocaleString()}</div>
+            <div className="text-black dark:text-white text-sm">{new Date(domainInfo.createdAt).toLocaleString()}</div>
           </div>
 
           {/* Updated At */}
-          <div className="rounded-lg bg-[#191919] p-3">
-            <div className="flex items-center justify-between text-[#626262] text-sm mb-1">
+          <div className="rounded-lg bg-black/5 dark:bg-white/10 p-3">
+            <div className="flex items-center justify-between text-black/60 dark:text-white/60 text-sm mb-1">
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
                 <span>Last updated at</span>
@@ -144,18 +144,18 @@ export default function DomainInfo({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 text-[#fafafa] hover:bg-[#fafafa]/10"
+                className="h-6 w-6 text-black dark:text-white hover:bg-black/10 dark:hover:bg-white/10"
                 onClick={() => copyToClipboard(domainInfo.updatedAt)}
               >
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
-            <div className="text-[#fafafa] text-sm">{new Date(domainInfo.updatedAt).toLocaleString()}</div>
+            <div className="text-black dark:text-white text-sm">{new Date(domainInfo.updatedAt).toLocaleString()}</div>
           </div>
         </CollapsibleContent>
       </Collapsible>
-      <Collapsible className="rounded-xl bg-[#282828] p-4">
-        <ToggleVisibility 
+      <Collapsible className="rounded-xl bg-black/10 dark:bg-white/10 backdrop-blur-md p-4">
+        <ToggleVisibility
           onTogglePortals={onTogglePortals}
           portalsVisible={portalsVisible}
           onToggleNavMesh={onToggleNavMesh}

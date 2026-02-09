@@ -1,6 +1,7 @@
 'use client';
 
 import { useTheme } from 'next-themes';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 export function TunnelNavigation() {
@@ -15,9 +16,9 @@ export function TunnelNavigation() {
   if (!mounted) {
     return (
       <nav className="fixed top-0 left-0 w-full z-50 px-6 py-6 md:px-12 flex justify-between items-center bg-transparent pointer-events-none">
-        <div className="text-lg font-medium tracking-tight pointer-events-auto cursor-pointer flex items-center gap-1">
+        <Link href="/" className="text-lg font-medium tracking-tight pointer-events-auto cursor-pointer flex items-center gap-1">
           <span className="font-serif italic text-xl mr-1">⌘</span> OpenSrc
-        </div>
+        </Link>
       </nav>
     );
   }
@@ -26,24 +27,30 @@ export function TunnelNavigation() {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
+  const navLinks = [
+    { label: 'Learn more', href: '#' },
+    { label: 'How to contribute', href: '#' },
+    { label: 'Examples', href: '/example' },
+  ];
+
   return (
     <nav className="fixed top-0 left-0 w-full z-50 px-6 py-6 md:px-12 flex justify-between items-center bg-transparent pointer-events-none">
       {/* Logo */}
-      <div className="text-lg font-medium tracking-tight pointer-events-auto cursor-pointer flex items-center gap-1 text-black dark:text-white">
+      <Link href="/" className="text-lg font-medium tracking-tight pointer-events-auto cursor-pointer flex items-center gap-1 text-black dark:text-white">
         <span className="font-serif italic text-xl mr-1">⌘</span> OpenSrc
-      </div>
+      </Link>
 
       {/* Center Links & Toggle */}
       <div className="hidden md:flex items-center gap-4 bg-black/10 dark:bg-white/10 backdrop-blur-md px-6 py-2 rounded-full pointer-events-auto">
         <div className="flex items-center gap-8 mr-4">
-          {['Learn more', 'How to contribute', 'Examples'].map((item) => (
-            <a
-              key={item}
-              href="#"
+          {navLinks.map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
               className="text-sm font-medium text-black hover:text-gray-600 dark:text-white dark:hover:text-gray-300 transition-colors"
             >
-              {item}
-            </a>
+              {item.label}
+            </Link>
           ))}
         </div>
 

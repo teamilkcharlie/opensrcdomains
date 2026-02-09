@@ -3,6 +3,7 @@
 import { fetchDomainInfo } from "@/app/actions";
 import DomainInfo from "@/components/DomainInfo";
 import Navbar from "@/components/Navbar";
+import { TunnelNavigation } from "@/components/TunnelNavigation";
 import Viewer3D from "@/components/Viewer3D";
 import PosemeshClientApi, { Portal } from "@/utils/posemeshClientApi";
 import Image from "next/image";
@@ -181,7 +182,8 @@ export default function DomainPage({ params, hideUI = false }: { params: { id: s
   };
 
   return (
-    <div className="relative h-screen w-full overflow-hidden bg-[#282828]">
+    <div className="relative h-screen w-full overflow-hidden bg-white dark:bg-[#050505]">
+      {!hideUI && !isInIframe && <TunnelNavigation />}
       <Viewer3D
         pointCloudData={pointCloudData}
         portals={portals}

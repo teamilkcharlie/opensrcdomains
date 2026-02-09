@@ -1,0 +1,19 @@
+name: Build
+on:
+  push:
+    branches:
+      - 'feature/**'
+      - 'bug/**'
+      - 'chore/**'
+      - 'hotfix/**'
+      - 'release/**'
+jobs:
+  build:
+    name: Build and push the image
+    uses: ./.github/workflows/javascript-workflow.yml
+    with:
+      enable_build: true
+      image_name: ${{ github.event.repository.name }}
+    secrets:
+      docker_username: ${{ secrets.DOCKER_USERNAME }}
+      docker_password: ${{ secrets.DOCKER_PASSWORD }}

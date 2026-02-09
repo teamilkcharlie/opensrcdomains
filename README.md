@@ -1,20 +1,49 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# OpenSrc Domains
 
-# Run and deploy your AI Studio app
+Infinite scrolling 3D tunnel with clickable images, built with Next.js, React Three Fiber, and Tailwind CSS.
 
-This contains everything you need to run your app locally.
+## Features
 
-View your app in AI Studio: https://ai.studio/apps/drive/1HwFFd7FgK-KogDBOoBCZ6vuAn66CPvR9
+- Infinite scrolling 3D tunnel visualization
+- Clickable images that link to external pages
+- Dark/light mode support
+- Domain viewer integration at `/[id]` routes
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
+**Prerequisites:** Node.js
 
+```bash
+cd domain-viewer
+npm install
+npm run dev
+```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+Open [http://localhost:3000](http://localhost:3000) to view the tunnel.
+
+## Environment Variables
+
+Create a `.env.local` file in the `domain-viewer` directory:
+
+```
+NEXT_PUBLIC_API_BASE_URL=https://your-api-endpoint.com
+```
+
+## Project Structure
+
+```
+domain-viewer/
+├── app/                    # Next.js App Router
+│   ├── page.tsx           # Tunnel home page
+│   └── [id]/              # Domain viewer routes
+├── components/
+│   ├── 3d/Tunnel.tsx      # React Three Fiber tunnel
+│   ├── TunnelHero.tsx     # Hero section with canvas
+│   └── TunnelNavigation.tsx
+├── hooks/
+│   └── useImageData.ts    # Image fetching hook
+├── types/
+│   └── image.ts           # TypeScript interfaces
+└── utils/
+    └── fallbackImages.ts  # Fallback image data
+```

@@ -1,7 +1,9 @@
+'use client';
+
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ImageData } from '../types/image';
-import { fetchImages } from '../api/imageService';
-import { FALLBACK_IMAGES } from '../utils/fallbackImages';
+import { ImageData } from '@/types/image';
+import { fetchImages } from '@/lib/imageService';
+import { FALLBACK_IMAGES } from '@/utils/fallbackImages';
 
 interface UseImageDataReturn {
   images: ImageData[];

@@ -20,7 +20,7 @@ export interface ImageApiResponse {
   error?: string;
 }
 
-// Extended mesh userData for raycasting
+// Extended mesh userData for click handling
 export interface ImageMeshUserData {
   imageId: string;
   linkUrl: string;

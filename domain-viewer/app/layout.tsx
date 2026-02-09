@@ -7,27 +7,27 @@ import { ThemeProvider } from "@/components/theme-provider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Real world web domain viewer",
-  description: "RWW domain visualizer",
+  title: "OpenSrc Domains",
+  description: "Infinite scrolling tunnel with clickable images",
   icons: {
     icon: "/images/favicon.png",
   },
   openGraph: {
-    title: "Real world web domain viewer",
-    description: "RWW domain visualizer",
+    title: "OpenSrc Domains",
+    description: "Infinite scrolling tunnel with clickable images",
     images: [
       {
         url: "/images/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Auki domain viewer",
+        alt: "OpenSrc Domains",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Real World Web domain viewer",
-    description: "Click to view this RWW domain",
+    title: "OpenSrc Domains",
+    description: "Infinite scrolling tunnel with clickable images",
     images: ["/images/og-image.png"],
   },
 }

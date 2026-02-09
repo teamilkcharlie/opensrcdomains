@@ -1,4 +1,4 @@
-import { ImageData } from '../types/image';
+import { ImageData } from '@/types/image';
 
 // Fallback images using existing Unsplash URLs
 // Used when API is unavailable or returns empty

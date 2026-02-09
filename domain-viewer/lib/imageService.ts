@@ -1,6 +1,6 @@
-import { ImageApiResponse } from '../types/image';
+import { ImageApiResponse } from '@/types/image';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
 
 export async function fetchImages(): Promise<ImageApiResponse> {
   try {

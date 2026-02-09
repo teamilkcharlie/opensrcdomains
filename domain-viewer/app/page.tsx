@@ -6,10 +6,13 @@ import { useTheme } from 'next-themes';
 import gsap from 'gsap';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+export type TunnelShape = 'cylinder' | 'rectangle';
+
 export default function Home() {
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [contentReady, setContentReady] = useState(false);
+  const [tunnelShape, setTunnelShape] = useState<TunnelShape>('cylinder');
   const contentRef = useRef<HTMLDivElement>(null);
   const hasAnimated = useRef(false);
 
@@ -39,15 +42,11 @@ export default function Home() {
     <div className={`min-h-screen overflow-hidden ${isDark ? 'bg-[#050505] text-white' : 'bg-white text-slate-900'}`}>
       {/* Everything fades in together */}
       <div ref={contentRef} style={{ opacity: 0 }}>
-        <TunnelNavigation />
+        <TunnelNavigation tunnelShape={tunnelShape} onToggleTunnelShape={() => setTunnelShape(s => s === 'cylinder' ? 'rectangle' : 'cylinder')} />
         <main>
-          <TunnelHero onReady={handleContentReady} />
+          <TunnelHero onReady={handleContentReady} tunnelShape={tunnelShape} />
         </main>
 
-        {/* Footer */}
-        <footer className={`fixed bottom-4 right-6 text-[10px] pointer-events-none z-50 ${isDark ? 'text-white/30' : 'text-black/30'}`}>
-          <p>&copy; {new Date().getFullYear()} OpenSrc Domains</p>
-        </footer>
       </div>
     </div>
   );

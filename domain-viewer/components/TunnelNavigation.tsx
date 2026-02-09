@@ -1,10 +1,18 @@
 'use client';
 
 import { useTheme } from 'next-themes';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-export function TunnelNavigation() {
+type TunnelShape = 'cylinder' | 'rectangle';
+
+interface TunnelNavigationProps {
+  tunnelShape?: TunnelShape;
+  onToggleTunnelShape?: () => void;
+}
+
+export function TunnelNavigation({ tunnelShape, onToggleTunnelShape }: TunnelNavigationProps) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -16,9 +24,12 @@ export function TunnelNavigation() {
   if (!mounted) {
     return (
       <nav className="fixed top-0 left-0 w-full z-50 px-6 py-6 md:px-12 flex justify-between items-center bg-transparent pointer-events-none">
-        <Link href="/" className="text-lg font-medium tracking-tight pointer-events-auto cursor-pointer flex items-center gap-1">
-          <span className="font-serif italic text-xl mr-1">⌘</span> OpenWorld
-        </Link>
+        <div className="min-w-[160px]">
+          <Link href="/" className="text-lg font-medium tracking-tight pointer-events-auto cursor-pointer flex items-center gap-2">
+            <Image src="/images/LogoIcon.svg" alt="OpenWorld" width={36} height={36} className="dark:invert" />
+            OpenWorld
+          </Link>
+        </div>
       </nav>
     );
   }
@@ -28,17 +39,21 @@ export function TunnelNavigation() {
   };
 
   const navLinks = [
-    { label: 'How to contribute', href: '/how-to-contribute' },
-    { label: 'Rewards', href: '#' },
-    { label: 'Disclaimer', href: '#' },
+    { label: 'How to Contribute', href: '/how-to-contribute' },
+    { label: 'Claim Rewards', href: '#' },
+    { label: 'Explore Dataset', href: '/8093f9bf-c374-4162-ab74-ab61949627f1' },
+    { label: 'Disclaimer', href: '/disclaimer' },
   ];
 
   return (
     <nav className="fixed top-0 left-0 w-full z-50 px-6 py-6 md:px-12 flex justify-between items-center bg-transparent pointer-events-none">
-      {/* Logo */}
-      <Link href="/" className="text-lg font-medium tracking-tight pointer-events-auto cursor-pointer flex items-center gap-1 text-black dark:text-white">
-        <span className="font-serif italic text-xl mr-1">⌘</span> OpenWorld
-      </Link>
+      {/* Logo - with min-width to balance with CTA */}
+      <div className="min-w-[160px]">
+        <Link href="/" className="text-lg font-medium tracking-tight pointer-events-auto cursor-pointer flex items-center gap-1 text-black dark:text-white w-fit">
+          <Image src="/images/LogoIcon.svg" alt="OpenWorld" width={28} height={28} className="dark:invert" />
+          OpenWorld
+        </Link>
+      </div>
 
       {/* Center Links & Toggle */}
       <div className="hidden md:flex items-center gap-4 bg-black/10 dark:bg-white/10 backdrop-blur-md pl-6 pr-2 py-2 rounded-full pointer-events-auto">
@@ -72,10 +87,10 @@ export function TunnelNavigation() {
         </button>
       </div>
 
-      {/* CTA */}
-      <div className="pointer-events-auto">
+      {/* CTA - with min-width to balance with logo */}
+      <div className="pointer-events-auto min-w-[160px] flex justify-end">
         <button className="px-5 py-2.5 rounded-full text-sm font-medium flex items-center gap-1 group bg-black text-white hover:bg-gray-900 dark:bg-white dark:text-black dark:hover:bg-gray-200 transition-colors">
-          Get the dataset <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+          Download Dataset <span className="group-hover:translate-x-0.5 transition-transform">→</span>
         </button>
       </div>
     </nav>

@@ -101,6 +101,18 @@ export function DomainDetailsPanel({ domainInfo, isLoading }: DomainDetailsPanel
         });
       }
 
+      if (titleRef.current) {
+        tl.to(
+          titleRef.current,
+          {
+            opacity: 0,
+            duration: 0.15,
+            ease: 'power2.in',
+          },
+          listRef.current ? '-=0.1' : 0
+        );
+      }
+
       tl.to(
         containerRef.current,
         {
@@ -108,7 +120,7 @@ export function DomainDetailsPanel({ domainInfo, isLoading }: DomainDetailsPanel
           duration: 0.3,
           ease: 'power3.inOut',
         },
-        listRef.current ? '-=0.1' : 0
+        '-=0.1'
       );
 
       tl.to(

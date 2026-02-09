@@ -8,9 +8,10 @@ interface DomainSelectorProps {
   currentDomainId: string;
   currentDomainName?: string;
   onDomainChange?: (domainId: string) => void;
+  isDomainLoading?: boolean;
 }
 
-export function DomainSelector({ currentDomainId, currentDomainName, onDomainChange }: DomainSelectorProps) {
+export function DomainSelector({ currentDomainId, currentDomainName, onDomainChange, isDomainLoading = false }: DomainSelectorProps) {
   const [domains, setDomains] = useState<DomainListItem[]>([]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -19,11 +20,52 @@ export function DomainSelector({ currentDomainId, currentDomainName, onDomainCha
 
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const loadingIndicatorRef = useRef<HTMLDivElement>(null);
+  const prevLoadingRef = useRef<boolean | null>(null);
 
   useEffect(() => {
     setMounted(true);
     loadDomains();
   }, [currentDomainId]);
+
+  // Animate loading indicator
+  useEffect(() => {
+    if (!mounted) return;
+
+    // Use requestAnimationFrame to ensure DOM is ready
+    const animateIndicator = () => {
+      if (!loadingIndicatorRef.current) return;
+
+      const wasLoading = prevLoadingRef.current;
+      const isFirstMount = wasLoading === null;
+
+      if (isDomainLoading && (isFirstMount || !wasLoading)) {
+        // Animate in
+        gsap.to(loadingIndicatorRef.current, {
+          opacity: 1,
+          width: 20,
+          marginRight: 4,
+          scale: 1,
+          duration: 0.3,
+          ease: 'power2.out',
+        });
+      } else if (!isDomainLoading && wasLoading) {
+        // Animate out
+        gsap.to(loadingIndicatorRef.current, {
+          opacity: 0,
+          width: 0,
+          marginRight: 0,
+          scale: 0.8,
+          duration: 0.25,
+          ease: 'power2.inOut',
+        });
+      }
+
+      prevLoadingRef.current = isDomainLoading;
+    };
+
+    requestAnimationFrame(animateIndicator);
+  }, [isDomainLoading, mounted]);
 
   const loadDomains = async () => {
     setIsLoading(true);
@@ -259,9 +301,18 @@ export function DomainSelector({ currentDomainId, currentDomainName, onDomainCha
 
         {/* Domain name */}
         <div className="flex-1 text-center px-4 min-w-0">
-          <span className="text-sm font-medium text-black dark:text-white truncate block">
-            {displayName}
-          </span>
+          <div className="flex items-center justify-center">
+            <div
+              ref={loadingIndicatorRef}
+              className="flex-shrink-0 overflow-hidden"
+              style={{ opacity: 0, width: 0, marginRight: 0 }}
+            >
+              <div className="w-4 h-4 border-2 border-black/20 dark:border-white/20 border-t-black dark:border-t-white rounded-full animate-spin" />
+            </div>
+            <span className="text-sm font-medium text-black dark:text-white truncate">
+              {displayName}
+            </span>
+          </div>
           {error && (
             <span className="text-xs text-red-500 truncate block">
               {error}

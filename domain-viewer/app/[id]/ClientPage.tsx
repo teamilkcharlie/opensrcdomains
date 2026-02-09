@@ -7,7 +7,6 @@ import { TunnelNavigation } from "@/components/TunnelNavigation";
 import { VisibilityControls } from "@/components/VisibilityControls";
 import Viewer3D from "@/components/Viewer3D";
 import PosemeshClientApi, { Portal } from "@/utils/posemeshClientApi";
-import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 
 export const maxDuration = 60;
@@ -237,6 +236,7 @@ export default function DomainPage({ params, hideUI = false }: { params: { id: s
                   currentDomainId={currentDomainId}
                   currentDomainName={domainData?.domainInfo?.name}
                   onDomainChange={handleDomainChange}
+                  isDomainLoading={isLoading}
                 />
               </div>
 
@@ -252,16 +252,6 @@ export default function DomainPage({ params, hideUI = false }: { params: { id: s
         </>
       )}
 
-      <div className="absolute bottom-4 right-4">
-        <Image
-          src="/images/logo.svg"
-          alt="Auki Logo"
-          width={48}
-          height={76}
-          priority
-          className="w-[48px] h-[76px] opacity-60"
-        />
-      </div>
     </div>
   );
 }

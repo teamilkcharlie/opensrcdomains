@@ -125,6 +125,18 @@ export function VisibilityControls({
         });
       }
 
+      if (titleRef.current) {
+        tl.to(
+          titleRef.current,
+          {
+            opacity: 0,
+            duration: 0.15,
+            ease: 'power2.in',
+          },
+          listRef.current ? '-=0.1' : 0
+        );
+      }
+
       tl.to(
         containerRef.current,
         {
@@ -132,7 +144,7 @@ export function VisibilityControls({
           duration: 0.3,
           ease: 'power3.inOut',
         },
-        listRef.current ? '-=0.1' : 0
+        '-=0.1'
       );
 
       tl.to(
@@ -257,9 +269,10 @@ export function VisibilityControls({
                       height="10"
                       viewBox="0 0 24 24"
                       fill="none"
-                      stroke={option.visible ? '#fff' : 'currentColor'}
+                      stroke="currentColor"
                       strokeWidth="3"
                       strokeLinecap="round"
+                      className="text-white dark:text-black"
                       strokeLinejoin="round"
                     >
                       <polyline points="20 6 9 17 4 12" />

@@ -1,5 +1,5 @@
 {
-  "name": "Delphi Clone",
-  "description": "Pixel-perfect recreation of the Delphi landing page using React, Tailwind, GSAP and SVG perspective grids.",
+  "name": "OpenSrc Domains",
+  "description": "Infinite scrolling tunnel with clickable images powered by React, Three.js, and GSAP.",
   "requestFramePermissions": []
 }

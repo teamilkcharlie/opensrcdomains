@@ -2,6 +2,9 @@
 
 import PosemeshServerApi from "@/utils/posemeshServerApi"
 
+// Domain server URL for fetching domain list
+const DOMAIN_SERVER_URL = "https://domain-server-us-east-1.aukiverse.com"
+
 /**
  * Response type for domain information requests.
  * Contains either successful domain data or error information.
@@ -14,6 +17,25 @@ interface DomainInfoResult {
     domainServerUrl: string // Base URL for domain server
   }
   error?: string // Error message if request fails
+}
+
+/**
+ * Domain list item from the domain server
+ */
+export interface DomainListItem {
+  id: string
+  name: string
+  created_at: string
+  updated_at: string
+}
+
+/**
+ * Response type for domain list requests
+ */
+interface DomainListResult {
+  success: boolean
+  data?: DomainListItem[]
+  error?: string
 }
 
 /**
@@ -69,6 +91,81 @@ export async function fetchDomainInfo(domainId: string, posemeshClientId: string
     }
   } catch (error) {
     console.error(`[${new Date().toISOString()}] Error in fetchDomainInfo:`, error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    }
+  }
+}
+
+/**
+ * Server action that fetches the list of available domains from the domain server.
+ *
+ * @returns Promise containing array of domain items or error details
+ */
+export async function fetchDomainList(): Promise<DomainListResult> {
+  console.log(`[${new Date().toISOString()}] Fetching domain list from ${DOMAIN_SERVER_URL}`)
+
+  try {
+    const appKey = process.env.AUKI_APP_KEY
+    const appSecret = process.env.AUKI_APP_SECRET
+
+    if (!appKey || !appSecret) {
+      throw new Error("Auki Network credentials are not configured")
+    }
+
+    // First authenticate to get access token
+    const API_SERVER = process.env.AUKI_API_SERVER
+    if (!API_SERVER) {
+      throw new Error("AUKI_API_SERVER environment variable is not set")
+    }
+
+    console.log(`[${new Date().toISOString()}] Authenticating with ${API_SERVER}`)
+    const basic = Buffer.from(`${appKey}:${appSecret}`).toString('base64')
+    const authResponse = await fetch(`${API_SERVER}/service/domains-access-token`, {
+      method: 'POST',
+      headers: {
+        "Authorization": `Basic ${basic}`,
+        "User-Agent": "domain-viewer",
+        "Accept": "application/json",
+      }
+    })
+
+    if (!authResponse.ok) {
+      const errorText = await authResponse.text().catch(() => '')
+      console.error(`[${new Date().toISOString()}] Auth failed:`, authResponse.status, errorText)
+      throw new Error(`Authentication failed: ${authResponse.status} ${authResponse.statusText}`)
+    }
+
+    const authData = await authResponse.json()
+    const accessToken = authData.access_token
+    console.log(`[${new Date().toISOString()}] Authentication successful, fetching domains...`)
+
+    // Fetch domain list from the domain server
+    const response = await fetch(`${DOMAIN_SERVER_URL}/api/v1/domains`, {
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "User-Agent": "domain-viewer",
+        "Accept": "application/json",
+      }
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '')
+      console.error(`[${new Date().toISOString()}] Domain list fetch failed:`, response.status, errorText)
+      throw new Error(`Failed to fetch domains: ${response.status} ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    console.log(`[${new Date().toISOString()}] Fetched ${data.domains?.length || 0} domains`)
+    console.log(`[${new Date().toISOString()}] Response keys:`, Object.keys(data))
+
+    return {
+      success: true,
+      data: data.domains || [],
+    }
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] Error fetching domain list:`, error)
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),

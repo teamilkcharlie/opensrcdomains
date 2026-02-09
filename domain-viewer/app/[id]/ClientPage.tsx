@@ -1,13 +1,14 @@
 "use client";
 
 import { fetchDomainInfo } from "@/app/actions";
-import DomainInfo from "@/components/DomainInfo";
-import Navbar from "@/components/Navbar";
+import { DomainDetailsPanel } from "@/components/DomainDetailsPanel";
+import { DomainSelector } from "@/components/DomainSelector";
 import { TunnelNavigation } from "@/components/TunnelNavigation";
+import { VisibilityControls } from "@/components/VisibilityControls";
 import Viewer3D from "@/components/Viewer3D";
 import PosemeshClientApi, { Portal } from "@/utils/posemeshClientApi";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export const maxDuration = 60;
 
@@ -23,14 +24,12 @@ interface DomainData {
  * portals, navigation meshes, and occlusion meshes.
  */
 export default function DomainPage({ params, hideUI = false }: { params: { id: string }, hideUI?: boolean }) {
+  const [currentDomainId, setCurrentDomainId] = useState(params.id);
   const [domainData, setDomainData] = useState<DomainData | null>(null);
-  const [pointCloudData, setPointCloudData] = useState<ArrayBuffer | null>(
-    null
-  );
+  const [pointCloudData, setPointCloudData] = useState<ArrayBuffer | null>(null);
   const [portals, setPortals] = useState<Portal[] | null>(null);
   const [navMeshData, setNavMeshData] = useState<ArrayBuffer | null>(null);
-  const [occlusionMeshData, setOcclusionMeshData] =
-    useState<ArrayBuffer | null>(null);
+  const [occlusionMeshData, setOcclusionMeshData] = useState<ArrayBuffer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [portalsVisible, setPortalsVisible] = useState(true);
   const [navMeshVisible, setNavMeshVisible] = useState(true);
@@ -39,15 +38,20 @@ export default function DomainPage({ params, hideUI = false }: { params: { id: s
   const [alignmentMatrix, setAlignmentMatrix] = useState<number[] | null>(null);
   const [isInIframe, setIsInIframe] = useState(false);
 
-  console.log("alignmentMatrix111", alignmentMatrix);
-
   useEffect(() => {
     // Detect if page is loaded in an iframe (e.g., Twitter embed)
     setIsInIframe(window.self !== window.top);
   }, []);
 
   useEffect(() => {
-    loadAllDomainData(params.id);
+    loadAllDomainData(currentDomainId);
+  }, [currentDomainId]);
+
+  // Sync with URL params
+  useEffect(() => {
+    if (params.id !== currentDomainId) {
+      setCurrentDomainId(params.id);
+    }
   }, [params.id]);
 
   /**
@@ -62,6 +66,14 @@ export default function DomainPage({ params, hideUI = false }: { params: { id: s
    */
   const loadAllDomainData = async (domainId: string) => {
     setIsLoading(true);
+    // Clear previous data
+    setDomainData(null);
+    setPointCloudData(null);
+    setPortals(null);
+    setNavMeshData(null);
+    setOcclusionMeshData(null);
+    setAlignmentMatrix(null);
+
     try {
       const clientApi = new PosemeshClientApi();
 
@@ -142,7 +154,6 @@ export default function DomainPage({ params, hideUI = false }: { params: { id: s
         );
 
         const metadata = JSON.parse(new TextDecoder().decode(domainMetadata));
-        console.log("metadata", metadata);
         setAlignmentMatrix(metadata.canonicalRefinementAlignmentMatrix);
         if (metadata.canonicalRefinement) {
           const pointCloudItem = domainData.find(
@@ -166,7 +177,7 @@ export default function DomainPage({ params, hideUI = false }: { params: { id: s
         }
       } else {
         console.log(
-          `[${new Date().toISOString()}] No domain matedata found for this domain`
+          `[${new Date().toISOString()}] No domain metadata found for this domain`
         );
       }
     } catch (error) {
@@ -176,10 +187,14 @@ export default function DomainPage({ params, hideUI = false }: { params: { id: s
     }
   };
 
-  // This function is now only used for navigation
-  const handleDomainInfoLoaded = () => {
-    // Intentionally empty as data loading is handled by useEffect
-  };
+  // Handle domain change from selector
+  const handleDomainChange = useCallback((newDomainId: string) => {
+    if (newDomainId !== currentDomainId) {
+      setCurrentDomainId(newDomainId);
+      // Update URL without full page reload
+      window.history.pushState({}, '', `/${newDomainId}`);
+    }
+  }, [currentDomainId]);
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-white dark:bg-[#050505]">
@@ -196,28 +211,47 @@ export default function DomainPage({ params, hideUI = false }: { params: { id: s
         alignmentMatrix={alignmentMatrix}
         isEmbed={isInIframe}
       />
+
       {!hideUI && !isInIframe && (
         <>
-          <Navbar
-            onDomainInfoLoaded={handleDomainInfoLoaded}
-            currentDomainId={params.id}
-            isLoading={isLoading}
-          />
-          {domainData && (
-            <DomainInfo
-              domainInfo={domainData.domainInfo}
-              onTogglePortals={() => setPortalsVisible(!portalsVisible)}
-              portalsVisible={portalsVisible}
-              onToggleNavMesh={() => setNavMeshVisible(!navMeshVisible)}
-              navMeshVisible={navMeshVisible}
-              onToggleOcclusion={() => setOcclusionVisible(!occlusionVisible)}
-              occlusionVisible={occlusionVisible}
-              onTogglePointCloud={() => setPointCloudVisible(!pointCloudVisible)}
-              pointCloudVisible={pointCloudVisible}
-            />
-          )}
+          {/* Bottom bar with controls */}
+          <div className="fixed bottom-6 left-0 right-0 z-50 pointer-events-none">
+            <div className="flex items-end justify-center gap-3 px-6">
+              {/* Left side - Visibility Controls */}
+              <div className="pointer-events-auto">
+                <VisibilityControls
+                  portalsVisible={portalsVisible}
+                  navMeshVisible={navMeshVisible}
+                  occlusionVisible={occlusionVisible}
+                  pointCloudVisible={pointCloudVisible}
+                  onTogglePortals={() => setPortalsVisible(!portalsVisible)}
+                  onToggleNavMesh={() => setNavMeshVisible(!navMeshVisible)}
+                  onToggleOcclusion={() => setOcclusionVisible(!occlusionVisible)}
+                  onTogglePointCloud={() => setPointCloudVisible(!pointCloudVisible)}
+                />
+              </div>
+
+              {/* Center - Domain Selector */}
+              <div className="pointer-events-auto">
+                <DomainSelector
+                  currentDomainId={currentDomainId}
+                  currentDomainName={domainData?.domainInfo?.name}
+                  onDomainChange={handleDomainChange}
+                />
+              </div>
+
+              {/* Right side - Domain Details */}
+              <div className="pointer-events-auto">
+                <DomainDetailsPanel
+                  domainInfo={domainData?.domainInfo}
+                  isLoading={isLoading}
+                />
+              </div>
+            </div>
+          </div>
         </>
       )}
+
       <div className="absolute bottom-4 right-4">
         <Image
           src="/images/logo.svg"

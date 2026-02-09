@@ -17,7 +17,7 @@ export function TunnelNavigation() {
     return (
       <nav className="fixed top-0 left-0 w-full z-50 px-6 py-6 md:px-12 flex justify-between items-center bg-transparent pointer-events-none">
         <Link href="/" className="text-lg font-medium tracking-tight pointer-events-auto cursor-pointer flex items-center gap-1">
-          <span className="font-serif italic text-xl mr-1">⌘</span> OpenSrc
+          <span className="font-serif italic text-xl mr-1">⌘</span> OpenWorld
         </Link>
       </nav>
     );
@@ -28,21 +28,21 @@ export function TunnelNavigation() {
   };
 
   const navLinks = [
-    { label: 'Learn more', href: '#' },
-    { label: 'How to contribute', href: '#' },
-    { label: 'Examples', href: '/example' },
+    { label: 'How to contribute', href: '/how-to-contribute' },
+    { label: 'Rewards', href: '#' },
+    { label: 'Disclaimer', href: '#' },
   ];
 
   return (
     <nav className="fixed top-0 left-0 w-full z-50 px-6 py-6 md:px-12 flex justify-between items-center bg-transparent pointer-events-none">
       {/* Logo */}
       <Link href="/" className="text-lg font-medium tracking-tight pointer-events-auto cursor-pointer flex items-center gap-1 text-black dark:text-white">
-        <span className="font-serif italic text-xl mr-1">⌘</span> OpenSrc
+        <span className="font-serif italic text-xl mr-1">⌘</span> OpenWorld
       </Link>
 
       {/* Center Links & Toggle */}
-      <div className="hidden md:flex items-center gap-4 bg-black/10 dark:bg-white/10 backdrop-blur-md px-6 py-2 rounded-full pointer-events-auto">
-        <div className="flex items-center gap-8 mr-4">
+      <div className="hidden md:flex items-center gap-4 bg-black/10 dark:bg-white/10 backdrop-blur-md pl-6 pr-2 py-2 rounded-full pointer-events-auto">
+        <div className="flex items-center gap-8">
           {navLinks.map((item) => (
             <Link
               key={item.label}

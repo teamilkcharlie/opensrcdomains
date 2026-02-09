@@ -2,7 +2,21 @@
 
 ![Domain Viewer Demo](./domain-viewer-demo.gif)
 
-A web-based 3D visualization tool for exploring posemesh domains. This application enables users to visualize the digital overlays of physical spaces, including point cloud data, navigation meshes, occlusion meshes, and portal locations in an intuitive 3D environment.
+A web-based 3D visualization tool for exploring posemesh domains.
+
+## Git Subtree
+
+This directory was merged into the opensrcdomains repo using git subtree. To sync with the upstream repository:
+
+**Pull updates from upstream:**
+```bash
+git subtree pull --prefix=domain-viewer domain-viewer main --squash
+```
+
+**Push changes to upstream (requires write access):**
+```bash
+git subtree push --prefix=domain-viewer domain-viewer main
+``` This application enables users to visualize the digital overlays of physical spaces, including point cloud data, navigation meshes, occlusion meshes, and portal locations in an intuitive 3D environment.
 
 ## What are Domains?
 

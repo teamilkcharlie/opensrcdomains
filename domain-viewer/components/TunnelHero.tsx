@@ -10,9 +10,9 @@ import { Tunnel } from './3d/Tunnel';
 import { useImageData } from '@/hooks/useImageData';
 
 export function TunnelHero() {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
+  useTheme(); // Keep hook for theme system to work
   const contentRef = useRef<HTMLDivElement>(null);
+  const scrollYRef = useRef(0);
   const [scrollY, setScrollY] = useState(0);
   const [mounted, setMounted] = useState(false);
 
@@ -23,12 +23,19 @@ export function TunnelHero() {
     setMounted(true);
   }, []);
 
-  // Scroll listener
+  // Wheel-based scrolling (allows negative values for infinite bidirectional scroll)
   useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    if (!mounted) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      scrollYRef.current += e.deltaY;
+      setScrollY(scrollYRef.current);
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    return () => window.removeEventListener('wheel', handleWheel);
+  }, [mounted]);
 
   // Text entrance animation
   useEffect(() => {
@@ -48,7 +55,7 @@ export function TunnelHero() {
   // Prevent hydration mismatch
   if (!mounted) {
     return (
-      <div className={`relative w-full h-[10000vh] ${isDark ? 'bg-[#050505]' : 'bg-white'}`} />
+      <div className="fixed inset-0 w-full h-full bg-white dark:bg-[#050505]" />
     );
   }
 
@@ -56,7 +63,7 @@ export function TunnelHero() {
 
   return (
     <div
-      className={`relative w-full h-[10000vh] transition-all duration-1000 ${isDark ? 'bg-[#050505]' : 'bg-white'}`}
+      className="fixed inset-0 w-full h-full bg-white dark:bg-[#050505]"
       style={{ opacity: isReady ? 1 : 0 }}
     >
       {/* Three.js Canvas */}
@@ -73,22 +80,22 @@ export function TunnelHero() {
           ref={contentRef}
           className="text-center flex flex-col items-center max-w-3xl px-6 pointer-events-none"
         >
-          <h1 className={`text-[5rem] md:text-[7rem] lg:text-[8rem] leading-[0.85] font-bold tracking-tighter mb-8 transition-colors duration-500 ${isDark ? 'text-white' : 'text-[#0F0F0F]'}`}>
+          <h1 className="text-[5rem] md:text-[7rem] lg:text-[8rem] leading-[0.85] font-bold tracking-tighter mb-8 text-[#0F0F0F] dark:text-white">
             Clone yourself.
           </h1>
 
-          <p className={`text-lg md:text-xl font-normal max-w-lg leading-relaxed mb-10 transition-colors duration-500 ${isDark ? 'text-gray-400' : 'text-[#6B6B6B]'}`}>
+          <p className="text-lg md:text-xl font-normal max-w-lg leading-relaxed mb-10 text-[#6B6B6B] dark:text-gray-400">
             Build the digital version of you to scale your expertise and availability,{' '}
             <span className="text-[#E85D35] font-medium">infinitely</span>
           </p>
 
           <div className="flex items-center gap-6 pointer-events-auto">
-            <button className={`rounded-full px-8 py-3.5 text-sm font-medium hover:scale-105 transition-all duration-300 ${isDark ? 'bg-white text-black hover:bg-gray-200' : 'bg-[#0F0F0F] text-white'}`}>
-              Try now
+            <button className="rounded-full px-8 py-3.5 text-sm font-medium hover:scale-105 transition-transform bg-[#0F0F0F] text-white dark:bg-white dark:text-black">
+              Contribute
             </button>
             <Link
               href="/example"
-              className={`text-sm font-medium hover:opacity-70 transition-opacity flex items-center gap-1 ${isDark ? 'text-white' : 'text-[#0F0F0F]'}`}
+              className="text-sm font-medium hover:opacity-70 transition-opacity flex items-center gap-1 text-[#0F0F0F] dark:text-white"
             >
               See examples <span>→</span>
             </Link>

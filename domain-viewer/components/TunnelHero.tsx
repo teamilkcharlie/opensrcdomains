@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Canvas } from '@react-three/fiber';
 import { PerspectiveCamera } from '@react-three/drei';
 import { useTheme } from 'next-themes';
@@ -20,6 +21,7 @@ const ROTATING_WORDS = ['World', 'Space', 'Room', 'Home', 'Future'];
 
 export function TunnelHero({ onReady, tunnelShape = 'cylinder' }: TunnelHeroProps) {
   useTheme(); // Keep hook for theme system to work
+  const router = useRouter(); // Must be called outside Canvas for Next.js context
   const scrollYRef = useRef(0);
   const [scrollY, setScrollY] = useState(0);
   const [mounted, setMounted] = useState(false);
@@ -213,7 +215,7 @@ export function TunnelHero({ onReady, tunnelShape = 'cylinder' }: TunnelHeroProp
       <div className="fixed inset-0 w-full h-full overflow-hidden z-0">
         <Canvas>
           <PerspectiveCamera makeDefault position={[0, 0, 0]} fov={70} near={0.1} far={1000} />
-          <Tunnel imagesRef={imagesRef} scrollY={scrollY} shape={tunnelShape} />
+          <Tunnel imagesRef={imagesRef} scrollY={scrollY} shape={tunnelShape} router={router} />
         </Canvas>
       </div>
 

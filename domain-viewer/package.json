@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@marsidev/react-turnstile": "^1.4.2",
     "@radix-ui/react-collapsible": "^1.1.2",
     "@radix-ui/react-slot": "^1.1.1",
     "@react-three/drei": "^9.102.3",
@@ -21,6 +22,8 @@
     "expo-asset": "latest",
     "expo-file-system": "latest",
     "expo-gl": "latest",
+    "google-auth-library": "^10.5.0",
+    "google-spreadsheet": "^5.0.2",
     "gsap": "^3.14.2",
     "jotai": "^2.7.1",
     "lucide-react": "^0.454.0",

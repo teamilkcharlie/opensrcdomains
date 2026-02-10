@@ -40,7 +40,7 @@ export function TunnelNavigation({ tunnelShape, onToggleTunnelShape }: TunnelNav
 
   const navLinks = [
     { label: 'How to Contribute', href: '/how-to-contribute' },
-    { label: 'Claim Rewards', href: '#' },
+    { label: 'Claim Rewards', href: '/rewards' },
     { label: 'Explore Dataset', href: '/8093f9bf-c374-4162-ab74-ab61949627f1' },
     { label: 'Disclaimer', href: '/disclaimer' },
   ];

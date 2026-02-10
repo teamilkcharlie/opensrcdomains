@@ -1,6 +1,9 @@
 "use server"
 
+import { headers } from "next/headers"
+import { createHash } from "crypto"
 import PosemeshServerApi from "@/utils/posemeshServerApi"
+import { appendRewardsSubmission, type RewardsFormData } from "@/lib/googleSheets"
 
 // Domain server URL for fetching domain list
 const DOMAIN_SERVER_URL = "https://domain-server-us-east-1.aukiverse.com"
@@ -173,3 +176,180 @@ export async function fetchDomainList(): Promise<DomainListResult> {
   }
 }
 
+// ============ REWARDS FORM ============
+
+// Rate limiting: Map of IP hash -> array of timestamps
+const rateLimitMap = new Map<string, number[]>()
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000 // 1 hour
+const RATE_LIMIT_MAX_REQUESTS = 10
+
+interface RewardsFormResult {
+  success: boolean
+  error?: string
+}
+
+function hashIP(ip: string): string {
+  return createHash('sha256').update(ip + (process.env.IP_HASH_SALT || 'default-salt')).digest('hex').slice(0, 16)
+}
+
+function checkRateLimit(ipHash: string): boolean {
+  const now = Date.now()
+  const timestamps = rateLimitMap.get(ipHash) || []
+
+  // Filter to only recent timestamps within the window
+  const recentTimestamps = timestamps.filter(t => now - t < RATE_LIMIT_WINDOW_MS)
+
+  if (recentTimestamps.length >= RATE_LIMIT_MAX_REQUESTS) {
+    return false // Rate limited
+  }
+
+  // Add current timestamp and update map
+  recentTimestamps.push(now)
+  rateLimitMap.set(ipHash, recentTimestamps)
+
+  // Cleanup old entries periodically (every 100 checks)
+  if (Math.random() < 0.01) {
+    for (const [key, times] of rateLimitMap.entries()) {
+      const filtered = times.filter(t => now - t < RATE_LIMIT_WINDOW_MS)
+      if (filtered.length === 0) {
+        rateLimitMap.delete(key)
+      } else {
+        rateLimitMap.set(key, filtered)
+      }
+    }
+  }
+
+  return true
+}
+
+async function verifyTurnstileToken(token: string): Promise<boolean> {
+  const secretKey = process.env.TURNSTILE_SECRET_KEY
+
+  if (!secretKey) {
+    console.error('TURNSTILE_SECRET_KEY not configured')
+    return false
+  }
+
+  try {
+    const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        secret: secretKey,
+        response: token,
+      }),
+    })
+
+    const data = await response.json()
+    return data.success === true
+  } catch (error) {
+    console.error('Turnstile verification failed:', error)
+    return false
+  }
+}
+
+function validateWalletAddress(address: string): boolean {
+  // Basic Ethereum address validation (0x + 40 hex chars)
+  return /^0x[a-fA-F0-9]{40}$/.test(address)
+}
+
+function validateEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
+export async function submitRewardsForm(formData: FormData): Promise<RewardsFormResult> {
+  console.log(`[${new Date().toISOString()}] Processing rewards form submission`)
+
+  try {
+    // Get client IP for rate limiting
+    const headersList = await headers()
+    const forwardedFor = headersList.get('x-forwarded-for')
+    const realIp = headersList.get('x-real-ip')
+    const clientIP = forwardedFor?.split(',')[0]?.trim() || realIp || 'unknown'
+    const ipHash = hashIP(clientIP)
+
+    // Check rate limit
+    if (!checkRateLimit(ipHash)) {
+      return {
+        success: false,
+        error: 'Too many submissions. Please try again later.',
+      }
+    }
+
+    // Extract form fields
+    const domainId = formData.get('domainId')?.toString().trim()
+    const description = formData.get('description')?.toString().trim()
+    const city = formData.get('city')?.toString().trim()
+    const walletAddress = formData.get('walletAddress')?.toString().trim()
+    const name = formData.get('name')?.toString().trim()
+    const email = formData.get('email')?.toString().trim()
+    const discord = formData.get('discord')?.toString().trim()
+    const twitter = formData.get('twitter')?.toString().trim()
+    const agreed = formData.get('agreed') === 'true'
+    const turnstileToken = formData.get('turnstileToken')?.toString()
+
+    // Validate required fields
+    if (!domainId) {
+      return { success: false, error: 'Domain ID is required' }
+    }
+    if (!description) {
+      return { success: false, error: 'Description is required' }
+    }
+    if (description.length > 500) {
+      return { success: false, error: 'Description must be 500 characters or less' }
+    }
+    if (!walletAddress) {
+      return { success: false, error: 'Wallet address is required' }
+    }
+    if (!validateWalletAddress(walletAddress)) {
+      return { success: false, error: 'Invalid wallet address format. Must be a valid Ethereum address (0x...)' }
+    }
+    if (!name) {
+      return { success: false, error: 'Name is required' }
+    }
+    if (!email) {
+      return { success: false, error: 'Email is required' }
+    }
+    if (!validateEmail(email)) {
+      return { success: false, error: 'Invalid email format' }
+    }
+    if (!agreed) {
+      return { success: false, error: 'You must agree to the terms' }
+    }
+    // TODO: Re-enable Turnstile verification in production
+    // if (!turnstileToken) {
+    //   return { success: false, error: 'Captcha verification required' }
+    // }
+    // const isValidToken = await verifyTurnstileToken(turnstileToken)
+    // if (!isValidToken) {
+    //   return { success: false, error: 'Captcha verification failed. Please try again.' }
+    // }
+
+    // Submit to Google Sheets
+    const submissionData: RewardsFormData = {
+      domainId,
+      description,
+      city: city || undefined,
+      walletAddress,
+      name,
+      email,
+      discord: discord || undefined,
+      twitter: twitter || undefined,
+      ipHash,
+    }
+
+    await appendRewardsSubmission(submissionData)
+
+    console.log(`[${new Date().toISOString()}] Rewards form submitted successfully for domain: ${domainId}`)
+
+    return { success: true }
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] Error submitting rewards form:`, error)
+    return {
+      success: false,
+      error: 'An error occurred while submitting the form. Please try again.',
+    }
+  }
+}

@@ -1,8 +1,11 @@
 'use client';
 
 import { useRef, useMemo, useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useFrame, useThree, ThreeEvent } from '@react-three/fiber';
+import { Line } from '@react-three/drei';
 import * as THREE from 'three';
+import gsap from 'gsap';
 import { ImageData, ImageMeshUserData } from '@/types/image';
 
 // Configuration
@@ -20,6 +23,13 @@ const FOG_NEAR = 10;
 const FOG_FAR = 70;
 const THEME_TRANSITION_DURATION = 0.5; // seconds
 
+// Smoothness settings
+const RING_SEGMENTS = 64; // Smoothness of circular grid lines
+const IMAGE_CURVE_SEGMENTS = 24; // Smoothness of curved image panels
+const CORNER_RADIUS = 0.15; // Rounded corner radius for images
+const CORNER_SEGMENTS = 6; // Segments per corner for smoothness
+const OUTLINE_OFFSET = 0.2; // Gap between image and outline
+
 type TunnelShape = 'cylinder' | 'rectangle';
 
 // Theme colors
@@ -27,12 +37,12 @@ const COLORS = {
   dark: {
     background: new THREE.Color('#050505'),
     gridLine: new THREE.Color('#555555'),
-    gridOpacity: 0.4
+    gridOpacity: 0.8
   },
   light: {
     background: new THREE.Color('#ffffff'),
     gridLine: new THREE.Color('#b0b0b0'),
-    gridOpacity: 0.5
+    gridOpacity: 0.8
   }
 };
 
@@ -40,6 +50,7 @@ interface TunnelProps {
   imagesRef: React.RefObject<ImageData[]>;
   scrollY: number;
   shape?: TunnelShape;
+  router: ReturnType<typeof useRouter>;
 }
 
 interface SegmentData {
@@ -94,16 +105,125 @@ function generateImageSlots(segmentKey: number, images: ImageData[]): ImageSlot[
   return slots;
 }
 
+// Helper to generate rounded rectangle outline for curved surface
+function generateCurvedRoundedRect(
+  centerAngle: number,
+  arcWidth: number,
+  zCenter: number,
+  zHeight: number,
+  radius: number,
+  cornerRadius: number,
+  cornerSegs: number,
+  edgeSegs: number
+): [number, number, number][] {
+  const points: [number, number, number][] = [];
+  const halfArc = arcWidth / 2;
+  const halfZ = zHeight / 2;
+
+  // Convert corner radius to angular units for the arc dimension
+  const cornerArcAngle = cornerRadius / radius;
+  const cornerZHeight = cornerRadius;
+
+  // Clamp corner radius to not exceed half of either dimension
+  const maxCornerArc = Math.min(halfArc * 0.4, cornerArcAngle);
+  const maxCornerZ = Math.min(halfZ * 0.4, cornerZHeight);
+
+  const startAngle = centerAngle - halfArc;
+  const endAngle = centerAngle + halfArc;
+  const bottomZ = zCenter - halfZ;
+  const topZ = zCenter + halfZ;
+
+  // Bottom-left corner
+  for (let i = 0; i <= cornerSegs; i++) {
+    const t = i / cornerSegs;
+    const cornerAngle = Math.PI + (Math.PI / 2) * t; // 180° to 270°
+    const a = startAngle + maxCornerArc + Math.cos(cornerAngle) * maxCornerArc;
+    const z = bottomZ + maxCornerZ + Math.sin(cornerAngle) * maxCornerZ;
+    points.push([Math.cos(a) * radius, Math.sin(a) * radius, z]);
+  }
+
+  // Bottom edge
+  for (let i = 1; i < edgeSegs; i++) {
+    const t = i / edgeSegs;
+    const a = startAngle + maxCornerArc + t * (arcWidth - 2 * maxCornerArc);
+    points.push([Math.cos(a) * radius, Math.sin(a) * radius, bottomZ]);
+  }
+
+  // Bottom-right corner
+  for (let i = 0; i <= cornerSegs; i++) {
+    const t = i / cornerSegs;
+    const cornerAngle = (3 * Math.PI / 2) + (Math.PI / 2) * t; // 270° to 360°
+    const a = endAngle - maxCornerArc + Math.cos(cornerAngle) * maxCornerArc;
+    const z = bottomZ + maxCornerZ + Math.sin(cornerAngle) * maxCornerZ;
+    points.push([Math.cos(a) * radius, Math.sin(a) * radius, z]);
+  }
+
+  // Right edge
+  for (let i = 1; i < cornerSegs; i++) {
+    const t = i / cornerSegs;
+    const z = bottomZ + maxCornerZ + t * (zHeight - 2 * maxCornerZ);
+    points.push([Math.cos(endAngle) * radius, Math.sin(endAngle) * radius, z]);
+  }
+
+  // Top-right corner
+  for (let i = 0; i <= cornerSegs; i++) {
+    const t = i / cornerSegs;
+    const cornerAngle = (Math.PI / 2) * t; // 0° to 90°
+    const a = endAngle - maxCornerArc + Math.cos(cornerAngle) * maxCornerArc;
+    const z = topZ - maxCornerZ + Math.sin(cornerAngle) * maxCornerZ;
+    points.push([Math.cos(a) * radius, Math.sin(a) * radius, z]);
+  }
+
+  // Top edge (reverse direction)
+  for (let i = 1; i < edgeSegs; i++) {
+    const t = i / edgeSegs;
+    const a = endAngle - maxCornerArc - t * (arcWidth - 2 * maxCornerArc);
+    points.push([Math.cos(a) * radius, Math.sin(a) * radius, topZ]);
+  }
+
+  // Top-left corner
+  for (let i = 0; i <= cornerSegs; i++) {
+    const t = i / cornerSegs;
+    const cornerAngle = (Math.PI / 2) + (Math.PI / 2) * t; // 90° to 180°
+    const a = startAngle + maxCornerArc + Math.cos(cornerAngle) * maxCornerArc;
+    const z = topZ - maxCornerZ + Math.sin(cornerAngle) * maxCornerZ;
+    points.push([Math.cos(a) * radius, Math.sin(a) * radius, z]);
+  }
+
+  // Left edge (back to start)
+  for (let i = 1; i < cornerSegs; i++) {
+    const t = i / cornerSegs;
+    const z = topZ - maxCornerZ - t * (zHeight - 2 * maxCornerZ);
+    points.push([Math.cos(startAngle) * radius, Math.sin(startAngle) * radius, z]);
+  }
+
+  // Close the loop
+  points.push(points[0]);
+
+  return points;
+}
+
+// Hover animation offset (how far inward the image moves)
+const HOVER_OFFSET = 0.3;
+
 // Single clickable curved image panel in the tunnel
-function TunnelImage({ slot }: { slot: ImageSlot }) {
+function TunnelImage({ slot, router }: { slot: ImageSlot; router: ReturnType<typeof useRouter> }) {
   const meshRef = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<THREE.Group>(null);
   const textureRef = useRef<THREE.Texture | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [outlineOpacity, setOutlineOpacity] = useState(0);
   const { imageData, angle, arcAngle, zPos, height } = slot;
 
-  // Create curved geometry that follows the cylinder surface
+  // Calculate the inward direction (toward center of cylinder)
+  const inwardX = -Math.cos(angle) * HOVER_OFFSET;
+  const inwardY = -Math.sin(angle) * HOVER_OFFSET;
+
+  // Create curved geometry with rounded corners
   const geometry = useMemo(() => {
     const r = TUNNEL_RADIUS - 0.05; // Slightly inside the cylinder
-    const segments = 8; // Smoothness of the curve
+    const segments = IMAGE_CURVE_SEGMENTS;
+    const cornerR = CORNER_RADIUS;
 
     const geo = new THREE.BufferGeometry();
     const vertices: number[] = [];
@@ -112,49 +232,83 @@ function TunnelImage({ slot }: { slot: ImageSlot }) {
 
     const startAngle = angle - arcAngle / 2;
     const halfHeight = height / 2;
-
-    // Create vertices for the curved panel
-    // UV mapping rotated 90° clockwise so images face viewer naturally
-    // Images on right half of tunnel (cos(angle) > 0) need additional 180° rotation
     const isRightSide = Math.cos(angle) > 0;
 
-    for (let i = 0; i <= segments; i++) {
-      const t = i / segments;
-      const a = startAngle + t * arcAngle;
-      const x = Math.cos(a) * r;
-      const y = Math.sin(a) * r;
+    // Corner radius in angular units
+    const cornerArc = Math.min(cornerR / r, arcAngle * 0.2);
+    const cornerZ = Math.min(cornerR, halfHeight * 0.4);
 
-      if (isRightSide) {
-        // Right side: additional 180° rotation
-        // Bottom vertex: (1, t)
-        vertices.push(x, y, zPos - halfHeight);
-        uvs.push(1, t);
+    // Generate rows of vertices from bottom to top
+    const rows: { z: number; startA: number; endA: number }[] = [];
 
-        // Top vertex: (0, t)
-        vertices.push(x, y, zPos + halfHeight);
-        uvs.push(0, t);
-      } else {
-        // Left side: original 90° rotation
-        // Bottom vertex: (0, 1-t)
-        vertices.push(x, y, zPos - halfHeight);
-        uvs.push(0, 1 - t);
+    // Bottom corners region
+    for (let i = 0; i <= CORNER_SEGMENTS; i++) {
+      const t = i / CORNER_SEGMENTS;
+      const cornerProgress = Math.sin(t * Math.PI / 2); // Ease in
+      const z = -halfHeight + cornerZ * (1 - Math.cos(t * Math.PI / 2));
+      const inset = cornerArc * (1 - cornerProgress);
+      rows.push({ z: zPos + z, startA: startAngle + inset, endA: startAngle + arcAngle - inset });
+    }
 
-        // Top vertex: (1, 1-t)
-        vertices.push(x, y, zPos + halfHeight);
-        uvs.push(1, 1 - t);
+    // Middle region
+    const midRows = Math.max(2, Math.floor(segments / 4));
+    for (let i = 1; i < midRows; i++) {
+      const t = i / midRows;
+      const z = -halfHeight + cornerZ + t * (height - 2 * cornerZ);
+      rows.push({ z: zPos + z, startA: startAngle, endA: startAngle + arcAngle });
+    }
+
+    // Top corners region
+    for (let i = 0; i <= CORNER_SEGMENTS; i++) {
+      const t = i / CORNER_SEGMENTS;
+      const cornerProgress = Math.cos(t * Math.PI / 2); // Ease out
+      const z = halfHeight - cornerZ * (1 - Math.sin(t * Math.PI / 2));
+      const inset = cornerArc * (1 - cornerProgress);
+      rows.push({ z: zPos + z, startA: startAngle + inset, endA: startAngle + arcAngle - inset });
+    }
+
+    // Create vertices for each row
+    const fullArcStart = startAngle;
+    const bottomZ = zPos - halfHeight;
+
+    for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
+      const row = rows[rowIdx];
+      const rowArcWidth = row.endA - row.startA;
+
+      for (let i = 0; i <= segments; i++) {
+        const t = i / segments;
+        const a = row.startA + t * rowArcWidth;
+        const x = Math.cos(a) * r;
+        const y = Math.sin(a) * r;
+
+        vertices.push(x, y, row.z);
+
+        // UV mapping based on actual position in the full rectangle
+        // U is based on angular position relative to full arc width
+        const uBase = (a - fullArcStart) / arcAngle;
+        // V is based on actual z position relative to total height
+        const vBase = (row.z - bottomZ) / height;
+
+        if (isRightSide) {
+          uvs.push(1 - vBase, uBase);
+        } else {
+          uvs.push(vBase, 1 - uBase);
+        }
       }
     }
 
     // Create triangles
-    for (let i = 0; i < segments; i++) {
-      const bl = i * 2;
-      const br = (i + 1) * 2;
-      const tl = i * 2 + 1;
-      const tr = (i + 1) * 2 + 1;
+    const vertsPerRow = segments + 1;
+    for (let rowIdx = 0; rowIdx < rows.length - 1; rowIdx++) {
+      for (let i = 0; i < segments; i++) {
+        const bl = rowIdx * vertsPerRow + i;
+        const br = rowIdx * vertsPerRow + i + 1;
+        const tl = (rowIdx + 1) * vertsPerRow + i;
+        const tr = (rowIdx + 1) * vertsPerRow + i + 1;
 
-      // Two triangles per quad (facing inward)
-      indices.push(bl, tl, br);
-      indices.push(br, tl, tr);
+        indices.push(bl, tl, br);
+        indices.push(br, tl, tr);
+      }
     }
 
     geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
@@ -163,6 +317,21 @@ function TunnelImage({ slot }: { slot: ImageSlot }) {
     geo.computeVertexNormals();
 
     return geo;
+  }, [angle, arcAngle, zPos, height]);
+
+  // Create outline points with offset and rounded corners
+  const outlinePoints = useMemo(() => {
+    const r = TUNNEL_RADIUS - 0.05 + OUTLINE_OFFSET; // Offset from image surface
+    return generateCurvedRoundedRect(
+      angle,
+      arcAngle,
+      zPos,
+      height,
+      r,
+      CORNER_RADIUS,
+      CORNER_SEGMENTS,
+      IMAGE_CURVE_SEGMENTS
+    );
   }, [angle, arcAngle, zPos, height]);
 
   useEffect(() => {
@@ -189,24 +358,72 @@ function TunnelImage({ slot }: { slot: ImageSlot }) {
     };
   }, [imageData.imageUrl]);
 
+  // GSAP animation for hover effects (outline + position)
+  useEffect(() => {
+    const opacityTarget = { value: outlineOpacity };
+    gsap.to(opacityTarget, {
+      value: isHovered ? 1 : 0,
+      duration: 0.25,
+      ease: 'power2.out',
+      onUpdate: () => setOutlineOpacity(opacityTarget.value),
+    });
+
+    // Animate position inward on hover
+    if (groupRef.current) {
+      gsap.to(groupRef.current.position, {
+        x: isHovered ? inwardX : 0,
+        y: isHovered ? inwardY : 0,
+        duration: 0.3,
+        ease: 'power2.out',
+      });
+    }
+  }, [isHovered, inwardX, inwardY]);
+
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
     if (imageData.linkUrl && imageData.linkUrl !== '#') {
-      window.location.href = imageData.linkUrl;
+      // Reset cursor before navigating
+      document.body.style.cursor = 'default';
+      setIsHovered(false);
+      router.push(imageData.linkUrl);
     }
   };
 
+  const handlePointerOver = (e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation();
+    document.body.style.cursor = 'pointer';
+    setIsHovered(true);
+  };
+
+  const handlePointerOut = () => {
+    document.body.style.cursor = 'default';
+    setIsHovered(false);
+  };
+
   return (
-    <mesh
-      ref={meshRef}
-      geometry={geometry}
-      onClick={handleClick}
-      onPointerOver={() => { document.body.style.cursor = 'pointer'; }}
-      onPointerOut={() => { document.body.style.cursor = 'default'; }}
-      userData={{ imageId: imageData.id, linkUrl: imageData.linkUrl, metadata: imageData.metadata } as ImageMeshUserData}
-    >
-      <meshBasicMaterial transparent opacity={0.85} side={THREE.DoubleSide} />
-    </mesh>
+    <group ref={groupRef}>
+      <mesh
+        ref={meshRef}
+        geometry={geometry}
+        onClick={handleClick}
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
+        userData={{ imageId: imageData.id, linkUrl: imageData.linkUrl, metadata: imageData.metadata } as ImageMeshUserData}
+      >
+        <meshBasicMaterial transparent opacity={0.85} side={THREE.DoubleSide} />
+      </mesh>
+
+      {/* White outline on hover */}
+      {outlineOpacity > 0 && (
+        <Line
+          points={outlinePoints}
+          color="#ffffff"
+          lineWidth={3}
+          transparent
+          opacity={outlineOpacity}
+        />
+      )}
+    </group>
   );
 }
 
@@ -284,13 +501,123 @@ function generateRectImageSlots(segmentKey: number, images: ImageData[]): RectIm
   return slots;
 }
 
+// Helper to generate rounded rectangle outline points
+function generateRoundedRectOutline(
+  width: number,
+  height: number,
+  cornerRadius: number,
+  cornerSegs: number,
+  zOffset: number
+): [number, number, number][] {
+  const points: [number, number, number][] = [];
+  const hw = width / 2;
+  const hh = height / 2;
+  const cr = Math.min(cornerRadius, hw * 0.4, hh * 0.4);
+
+  // Bottom-left corner
+  for (let i = 0; i <= cornerSegs; i++) {
+    const t = i / cornerSegs;
+    const angle = Math.PI + (Math.PI / 2) * t;
+    points.push([
+      -hw + cr + Math.cos(angle) * cr,
+      -hh + cr + Math.sin(angle) * cr,
+      zOffset
+    ]);
+  }
+
+  // Bottom-right corner
+  for (let i = 0; i <= cornerSegs; i++) {
+    const t = i / cornerSegs;
+    const angle = (3 * Math.PI / 2) + (Math.PI / 2) * t;
+    points.push([
+      hw - cr + Math.cos(angle) * cr,
+      -hh + cr + Math.sin(angle) * cr,
+      zOffset
+    ]);
+  }
+
+  // Top-right corner
+  for (let i = 0; i <= cornerSegs; i++) {
+    const t = i / cornerSegs;
+    const angle = (Math.PI / 2) * t;
+    points.push([
+      hw - cr + Math.cos(angle) * cr,
+      hh - cr + Math.sin(angle) * cr,
+      zOffset
+    ]);
+  }
+
+  // Top-left corner
+  for (let i = 0; i <= cornerSegs; i++) {
+    const t = i / cornerSegs;
+    const angle = (Math.PI / 2) + (Math.PI / 2) * t;
+    points.push([
+      -hw + cr + Math.cos(angle) * cr,
+      hh - cr + Math.sin(angle) * cr,
+      zOffset
+    ]);
+  }
+
+  // Close the loop
+  points.push(points[0]);
+
+  return points;
+}
+
+// Helper to create rounded rectangle geometry
+function createRoundedRectGeometry(
+  width: number,
+  height: number,
+  cornerRadius: number,
+  cornerSegs: number
+): THREE.BufferGeometry {
+  const shape = new THREE.Shape();
+  const hw = width / 2;
+  const hh = height / 2;
+  const cr = Math.min(cornerRadius, hw * 0.4, hh * 0.4);
+
+  shape.moveTo(-hw + cr, -hh);
+  shape.lineTo(hw - cr, -hh);
+  shape.quadraticCurveTo(hw, -hh, hw, -hh + cr);
+  shape.lineTo(hw, hh - cr);
+  shape.quadraticCurveTo(hw, hh, hw - cr, hh);
+  shape.lineTo(-hw + cr, hh);
+  shape.quadraticCurveTo(-hw, hh, -hw, hh - cr);
+  shape.lineTo(-hw, -hh + cr);
+  shape.quadraticCurveTo(-hw, -hh, -hw + cr, -hh);
+
+  const geo = new THREE.ShapeGeometry(shape, cornerSegs);
+  return geo;
+}
+
 // Single flat image for rectangular tunnel
-function RectTunnelImage({ slot }: { slot: RectImageSlot }) {
+function RectTunnelImage({ slot, router }: { slot: RectImageSlot; router: ReturnType<typeof useRouter> }) {
   const meshRef = useRef<THREE.Mesh>(null);
+  const innerGroupRef = useRef<THREE.Group>(null);
   const textureRef = useRef<THREE.Texture | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [outlineOpacity, setOutlineOpacity] = useState(0);
   const { imageData, position, rotation, size } = slot;
   const [width, height] = size;
   const cellMargin = 0.4;
+  const actualWidth = width - cellMargin;
+  const actualHeight = height - cellMargin;
+
+  // Create rounded rectangle geometry
+  const geometry = useMemo(() => {
+    return createRoundedRectGeometry(actualWidth, actualHeight, CORNER_RADIUS, CORNER_SEGMENTS);
+  }, [actualWidth, actualHeight]);
+
+  // Create outline points with rounded corners and offset
+  const outlinePoints = useMemo((): [number, number, number][] => {
+    return generateRoundedRectOutline(
+      actualWidth + OUTLINE_OFFSET * 2,
+      actualHeight + OUTLINE_OFFSET * 2,
+      CORNER_RADIUS + OUTLINE_OFFSET * 0.5,
+      CORNER_SEGMENTS,
+      0.01
+    );
+  }, [actualWidth, actualHeight]);
 
   useEffect(() => {
     const loader = new THREE.TextureLoader();
@@ -319,26 +646,73 @@ function RectTunnelImage({ slot }: { slot: RectImageSlot }) {
     };
   }, [imageData.imageUrl]);
 
+  // GSAP animation for hover effects (outline + position)
+  useEffect(() => {
+    const opacityTarget = { value: outlineOpacity };
+    gsap.to(opacityTarget, {
+      value: isHovered ? 1 : 0,
+      duration: 0.25,
+      ease: 'power2.out',
+      onUpdate: () => setOutlineOpacity(opacityTarget.value),
+    });
+
+    // Animate position toward viewer on hover (z moves "up" from the wall surface)
+    if (innerGroupRef.current) {
+      gsap.to(innerGroupRef.current.position, {
+        z: isHovered ? HOVER_OFFSET : 0,
+        duration: 0.3,
+        ease: 'power2.out',
+      });
+    }
+  }, [isHovered]);
+
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
     if (imageData.linkUrl && imageData.linkUrl !== '#') {
-      window.location.href = imageData.linkUrl;
+      // Reset cursor before navigating
+      document.body.style.cursor = 'default';
+      setIsHovered(false);
+      router.push(imageData.linkUrl);
     }
   };
 
+  const handlePointerOver = (e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation();
+    document.body.style.cursor = 'pointer';
+    setIsHovered(true);
+  };
+
+  const handlePointerOut = () => {
+    document.body.style.cursor = 'default';
+    setIsHovered(false);
+  };
+
   return (
-    <mesh
-      ref={meshRef}
-      position={position}
-      rotation={rotation}
-      onClick={handleClick}
-      onPointerOver={() => { document.body.style.cursor = 'pointer'; }}
-      onPointerOut={() => { document.body.style.cursor = 'default'; }}
-      userData={{ imageId: imageData.id, linkUrl: imageData.linkUrl, metadata: imageData.metadata } as ImageMeshUserData}
-    >
-      <planeGeometry args={[width - cellMargin, height - cellMargin]} />
-      <meshBasicMaterial transparent opacity={0.85} side={THREE.DoubleSide} />
-    </mesh>
+    <group position={position} rotation={rotation}>
+      <group ref={innerGroupRef}>
+        <mesh
+          ref={meshRef}
+          geometry={geometry}
+          onClick={handleClick}
+          onPointerOver={handlePointerOver}
+          onPointerOut={handlePointerOut}
+          userData={{ imageId: imageData.id, linkUrl: imageData.linkUrl, metadata: imageData.metadata } as ImageMeshUserData}
+        >
+          <meshBasicMaterial transparent opacity={0.85} side={THREE.DoubleSide} />
+        </mesh>
+
+        {/* White outline on hover */}
+        {outlineOpacity > 0 && (
+          <Line
+            points={outlinePoints}
+            color="#ffffff"
+            lineWidth={3}
+            transparent
+            opacity={outlineOpacity}
+          />
+        )}
+      </group>
+    </group>
   );
 }
 
@@ -382,11 +756,12 @@ function RectSegmentGrid({ materialRef }: { materialRef: React.RefObject<THREE.L
 }
 
 // Rectangular tunnel segment
-function RectTunnelSegment({ zPos, images, segmentKey, gridMaterialRef }: {
+function RectTunnelSegment({ zPos, images, segmentKey, gridMaterialRef, router }: {
   zPos: number;
   images: ImageData[];
   segmentKey: number;
   gridMaterialRef: React.RefObject<THREE.LineBasicMaterial>;
+  router: ReturnType<typeof useRouter>;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const imageSlots = useMemo(() => generateRectImageSlots(segmentKey, images), [segmentKey, images]);
@@ -404,6 +779,7 @@ function RectTunnelSegment({ zPos, images, segmentKey, gridMaterialRef }: {
         <RectTunnelImage
           key={`${segmentKey}-img-${idx}`}
           slot={slot}
+          router={router}
         />
       ))}
     </group>
@@ -416,7 +792,6 @@ function RectTunnelSegment({ zPos, images, segmentKey, gridMaterialRef }: {
 function CylinderSegmentGrid({ materialRef }: { materialRef: React.RefObject<THREE.LineBasicMaterial> }) {
   const r = TUNNEL_RADIUS;
   const d = SEGMENT_DEPTH;
-  const ringSegments = 32; // Smoothness of the circle
 
   const geometry = useMemo(() => {
     const vertices: number[] = [];
@@ -429,10 +804,10 @@ function CylinderSegmentGrid({ materialRef }: { materialRef: React.RefObject<THR
       vertices.push(x, y, 0, x, y, -d);
     }
 
-    // Ring at z=0 (circular cross-section)
-    for (let i = 0; i < ringSegments; i++) {
-      const angle1 = (i / ringSegments) * Math.PI * 2;
-      const angle2 = ((i + 1) / ringSegments) * Math.PI * 2;
+    // Ring at z=0 (circular cross-section) - using RING_SEGMENTS for smoothness
+    for (let i = 0; i < RING_SEGMENTS; i++) {
+      const angle1 = (i / RING_SEGMENTS) * Math.PI * 2;
+      const angle2 = ((i + 1) / RING_SEGMENTS) * Math.PI * 2;
 
       const x1 = Math.cos(angle1) * r;
       const y1 = Math.sin(angle1) * r;
@@ -443,9 +818,9 @@ function CylinderSegmentGrid({ materialRef }: { materialRef: React.RefObject<THR
     }
 
     // Ring at z=-d (back of segment)
-    for (let i = 0; i < ringSegments; i++) {
-      const angle1 = (i / ringSegments) * Math.PI * 2;
-      const angle2 = ((i + 1) / ringSegments) * Math.PI * 2;
+    for (let i = 0; i < RING_SEGMENTS; i++) {
+      const angle1 = (i / RING_SEGMENTS) * Math.PI * 2;
+      const angle2 = ((i + 1) / RING_SEGMENTS) * Math.PI * 2;
 
       const x1 = Math.cos(angle1) * r;
       const y1 = Math.sin(angle1) * r;
@@ -468,11 +843,12 @@ function CylinderSegmentGrid({ materialRef }: { materialRef: React.RefObject<THR
 }
 
 // Cylindrical tunnel segment
-function CylinderTunnelSegment({ zPos, images, segmentKey, gridMaterialRef }: {
+function CylinderTunnelSegment({ zPos, images, segmentKey, gridMaterialRef, router }: {
   zPos: number;
   images: ImageData[];
   segmentKey: number;
   gridMaterialRef: React.RefObject<THREE.LineBasicMaterial>;
+  router: ReturnType<typeof useRouter>;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const imageSlots = useMemo(() => generateImageSlots(segmentKey, images), [segmentKey, images]);
@@ -490,6 +866,7 @@ function CylinderTunnelSegment({ zPos, images, segmentKey, gridMaterialRef }: {
         <TunnelImage
           key={`${segmentKey}-img-${idx}`}
           slot={slot}
+          router={router}
         />
       ))}
     </group>
@@ -503,7 +880,7 @@ function getIsDark(): boolean {
 }
 
 // Main Tunnel component
-export function Tunnel({ imagesRef, scrollY, shape = 'cylinder' }: TunnelProps) {
+export function Tunnel({ imagesRef, scrollY, shape = 'cylinder', router }: TunnelProps) {
   const { camera, scene } = useThree();
 
   // Track dark mode state directly from DOM for instant response
@@ -702,6 +1079,7 @@ export function Tunnel({ imagesRef, scrollY, shape = 'cylinder' }: TunnelProps) 
             images={images}
             segmentKey={segment.key}
             gridMaterialRef={gridMaterialRef}
+            router={router}
           />
         ) : (
           <RectTunnelSegment
@@ -710,6 +1088,7 @@ export function Tunnel({ imagesRef, scrollY, shape = 'cylinder' }: TunnelProps) 
             images={images}
             segmentKey={segment.key}
             gridMaterialRef={gridMaterialRef}
+            router={router}
           />
         )
       ))}

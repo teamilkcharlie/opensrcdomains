@@ -467,6 +467,9 @@ export default function Viewer3D({
   const [controlMode, setControlMode] = useState<"map" | "fps">("map");
   const fpsStart = useMemo<[number, number, number]>(() => [0, 1.8, 3], []);
 
+  // Memoize camera config to prevent re-initialization on re-renders
+  const cameraConfig = useMemo(() => ({ position: [15, 15, 15] as [number, number, number], fov: 50 }), []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code === "KeyF" && !isEmbed) {
@@ -484,8 +487,8 @@ export default function Viewer3D({
   }, [isEmbed]);
 
   return (
-    <div className="w-full h-full bg-white dark:bg-[#050505]">
-      <Canvas camera={{ position: [15, 15, 15], fov: 50 }} gl={{ alpha: true }}>
+    <div className="absolute inset-0 w-full h-full bg-white dark:bg-[#050505] z-0">
+      <Canvas camera={cameraConfig} gl={{ alpha: true }}>
         <ambientLight intensity={0.5} />
         <directionalLight intensity={0.5} position={[10, 100, 10]} />
         <OriginLines />
@@ -509,6 +512,10 @@ export default function Viewer3D({
         ) : (
           <PersistedMapControls
             makeDefault
+            enabled={true}
+            enablePan={true}
+            enableRotate={true}
+            enableZoom={true}
             minPolarAngle={0}
             maxPolarAngle={Math.PI / 2}
             enableDamping={true}

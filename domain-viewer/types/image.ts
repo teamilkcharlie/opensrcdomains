@@ -11,6 +11,7 @@ export interface ImageMetadata {
   description?: string;
   author?: string;
   category?: string;
+  createdAt?: string;
 }
 
 // API response wrapper

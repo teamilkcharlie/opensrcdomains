@@ -222,16 +222,16 @@ function checkRateLimit(ipHash: string): boolean {
   return true
 }
 
-async function verifyTurnstileToken(token: string): Promise<boolean> {
-  const secretKey = process.env.TURNSTILE_SECRET_KEY
+async function verifyRecaptchaToken(token: string): Promise<boolean> {
+  const secretKey = process.env.RECAPTCHA_SECRET_KEY
 
   if (!secretKey) {
-    console.error('TURNSTILE_SECRET_KEY not configured')
+    console.error('RECAPTCHA_SECRET_KEY not configured')
     return false
   }
 
   try {
-    const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -243,9 +243,22 @@ async function verifyTurnstileToken(token: string): Promise<boolean> {
     })
 
     const data = await response.json()
-    return data.success === true
+
+    // reCAPTCHA v3 returns a score (0.0 to 1.0)
+    // 1.0 is very likely a good interaction, 0.0 is very likely a bot
+    // We require a score of 0.5 or higher
+    if (!data.success) {
+      return false
+    }
+
+    // If score exists (v3), check threshold
+    if (typeof data.score === 'number') {
+      return data.score >= 0.5
+    }
+
+    return true
   } catch (error) {
-    console.error('Turnstile verification failed:', error)
+    console.error('reCAPTCHA verification failed:', error)
     return false
   }
 }
@@ -260,8 +273,6 @@ function validateEmail(email: string): boolean {
 }
 
 export async function submitRewardsForm(formData: FormData): Promise<RewardsFormResult> {
-  console.log(`[${new Date().toISOString()}] Processing rewards form submission`)
-
   try {
     // Get client IP for rate limiting
     const headersList = await headers()
@@ -288,7 +299,7 @@ export async function submitRewardsForm(formData: FormData): Promise<RewardsForm
     const discord = formData.get('discord')?.toString().trim()
     const twitter = formData.get('twitter')?.toString().trim()
     const agreed = formData.get('agreed') === 'true'
-    const turnstileToken = formData.get('turnstileToken')?.toString()
+    const recaptchaToken = formData.get('recaptchaToken')?.toString()
 
     // Validate required fields
     if (!domainId) {
@@ -304,7 +315,7 @@ export async function submitRewardsForm(formData: FormData): Promise<RewardsForm
       return { success: false, error: 'Wallet address is required' }
     }
     if (!validateWalletAddress(walletAddress)) {
-      return { success: false, error: 'Invalid wallet address format. Must be a valid Ethereum address (0x...)' }
+      return { success: false, error: 'Invalid wallet address format. Must be a valid Base wallet address (0x followed by 40 characters)' }
     }
     if (!name) {
       return { success: false, error: 'Name is required' }
@@ -318,14 +329,13 @@ export async function submitRewardsForm(formData: FormData): Promise<RewardsForm
     if (!agreed) {
       return { success: false, error: 'You must agree to the terms' }
     }
-    // TODO: Re-enable Turnstile verification in production
-    // if (!turnstileToken) {
-    //   return { success: false, error: 'Captcha verification required' }
-    // }
-    // const isValidToken = await verifyTurnstileToken(turnstileToken)
-    // if (!isValidToken) {
-    //   return { success: false, error: 'Captcha verification failed. Please try again.' }
-    // }
+    if (!recaptchaToken) {
+      return { success: false, error: 'Captcha verification required' }
+    }
+    const isValidToken = await verifyRecaptchaToken(recaptchaToken)
+    if (!isValidToken) {
+      return { success: false, error: 'Captcha verification failed. Please try again.' }
+    }
 
     // Submit to Google Sheets
     const submissionData: RewardsFormData = {
@@ -341,8 +351,6 @@ export async function submitRewardsForm(formData: FormData): Promise<RewardsForm
     }
 
     await appendRewardsSubmission(submissionData)
-
-    console.log(`[${new Date().toISOString()}] Rewards form submitted successfully for domain: ${domainId}`)
 
     return { success: true }
   } catch (error) {

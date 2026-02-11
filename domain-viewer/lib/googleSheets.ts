@@ -24,33 +24,21 @@ async function getSpreadsheet(): Promise<GoogleSpreadsheet> {
   const clientEmail = process.env.GOOGLE_SHEETS_CLIENT_EMAIL
   const privateKey = process.env.GOOGLE_SHEETS_PRIVATE_KEY
 
-  console.log('[GoogleSheets] Checking credentials...')
-  console.log('[GoogleSheets] Spreadsheet ID:', spreadsheetId ? 'set' : 'missing')
-  console.log('[GoogleSheets] Client Email:', clientEmail ? clientEmail : 'missing')
-  console.log('[GoogleSheets] Private Key:', privateKey ? 'set (length: ' + privateKey.length + ')' : 'missing')
-
   if (!spreadsheetId || !clientEmail || !privateKey) {
     throw new Error('Google Sheets credentials not configured')
   }
 
-  try {
-    const serviceAccountAuth = new JWT({
-      email: clientEmail,
-      key: privateKey.replace(/\\n/g, '\n'),
-      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-    })
+  const serviceAccountAuth = new JWT({
+    email: clientEmail,
+    key: privateKey.replace(/\\n/g, '\n'),
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  })
 
-    console.log('[GoogleSheets] JWT created, loading spreadsheet...')
-    const doc = new GoogleSpreadsheet(spreadsheetId, serviceAccountAuth)
-    await doc.loadInfo()
-    console.log('[GoogleSheets] Spreadsheet loaded:', doc.title)
+  const doc = new GoogleSpreadsheet(spreadsheetId, serviceAccountAuth)
+  await doc.loadInfo()
 
-    cachedDoc = doc
-    return doc
-  } catch (error) {
-    console.error('[GoogleSheets] Failed to connect:', error)
-    throw error
-  }
+  cachedDoc = doc
+  return doc
 }
 
 export async function appendRewardsSubmission(data: RewardsFormData): Promise<void> {

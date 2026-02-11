@@ -55,3 +55,8 @@
   }
 }
 
+/* Hide reCAPTCHA badge - we show attribution text instead */
+.grecaptcha-badge {
+  visibility: hidden !important;
+}
+

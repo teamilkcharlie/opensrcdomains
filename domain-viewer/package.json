@@ -32,6 +32,7 @@
     "parse-multipart-data": "latest",
     "react": "^18",
     "react-dom": "^18",
+    "react-google-recaptcha-v3": "^1.11.0",
     "react-native": "latest",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",

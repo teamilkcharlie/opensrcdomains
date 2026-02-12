@@ -1,7 +1,10 @@
-"use client";
-
 import ClientPage from "../ClientPage";
 
-export default function PreviewPage({ params }: { params: { id: string } }) {
-    return <ClientPage params={params} hideUI={true} />;
+interface Props {
+  params: Promise<{ id: string }>;
+}
+
+export default async function PreviewPage({ params }: Props) {
+  const resolvedParams = await params;
+  return <ClientPage params={resolvedParams} hideUI={true} />;
 }

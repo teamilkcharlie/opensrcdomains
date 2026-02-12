@@ -8,6 +8,13 @@ import { VisibilityControls } from "@/components/VisibilityControls";
 import Viewer3D from "@/components/Viewer3D";
 import PosemeshClientApi, { Portal } from "@/utils/posemeshClientApi";
 import { useCallback, useEffect, useState } from "react";
+import { useAtom } from "jotai";
+import {
+  portalsVisibleAtom,
+  navMeshVisibleAtom,
+  occlusionVisibleAtom,
+  pointCloudVisibleAtom,
+} from "@/store/visualizationStore";
 
 export const maxDuration = 60;
 
@@ -30,10 +37,10 @@ export default function DomainPage({ params, hideUI = false }: { params: { id: s
   const [navMeshData, setNavMeshData] = useState<ArrayBuffer | null>(null);
   const [occlusionMeshData, setOcclusionMeshData] = useState<ArrayBuffer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [portalsVisible, setPortalsVisible] = useState(true);
-  const [navMeshVisible, setNavMeshVisible] = useState(true);
-  const [occlusionVisible, setOcclusionVisible] = useState(true);
-  const [pointCloudVisible, setPointCloudVisible] = useState(true);
+  const [portalsVisible, setPortalsVisible] = useAtom(portalsVisibleAtom);
+  const [navMeshVisible, setNavMeshVisible] = useAtom(navMeshVisibleAtom);
+  const [occlusionVisible, setOcclusionVisible] = useAtom(occlusionVisibleAtom);
+  const [pointCloudVisible, setPointCloudVisible] = useAtom(pointCloudVisibleAtom);
   const [alignmentMatrix, setAlignmentMatrix] = useState<number[] | null>(null);
   const [isInIframe, setIsInIframe] = useState(false);
 
@@ -199,15 +206,6 @@ export default function DomainPage({ params, hideUI = false }: { params: { id: s
     <div className="relative h-screen w-full overflow-hidden bg-white dark:bg-[#050505]">
       {!hideUI && !isInIframe && <TunnelNavigation />}
       <Viewer3D
-        pointCloudData={pointCloudData}
-        portals={portals}
-        occlusionMeshData={occlusionMeshData}
-        navMeshData={navMeshData}
-        portalsVisible={portalsVisible}
-        navMeshVisible={navMeshVisible}
-        occlusionVisible={occlusionVisible}
-        pointCloudVisible={pointCloudVisible}
-        alignmentMatrix={alignmentMatrix}
         isEmbed={isInIframe}
       />
 
